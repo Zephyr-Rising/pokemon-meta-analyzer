@@ -1461,7 +1461,7 @@ https://zephyr-rising.github.io/pokemon-meta-analyzer/, phone page at `/matchups
       `Zephyr-Rising` for its own process only
 
 ### 5. Go live (confirm with the user first)
-- [ ] `gh repo create`, push `main`, preflight, deploy, Pages source `gh-pages` root
+- [x] `gh repo create`, push `main`, preflight, deploy, Pages source `gh-pages` root (2026-11-12)
 
 ### Verification
 - [x] Every `__*__JSON__` payload and figure `data` array identical to the baseline (ids normalised, colours excluded)
@@ -1469,7 +1469,7 @@ https://zephyr-rising.github.io/pokemon-meta-analyzer/, phone page at `/matchups
       `KeyError: 'deck'`, as it did before this work: it reads the old top-level CSVs, not the notebook
 - [x] Preflight green on the exact `dist/` that ships
 - [x] Screenshots of each group at desktop and 390 px reviewed for contrast and legibility
-- [ ] Live check: 200, title, `/matchups.html`, loads in headless Chromium
+- [x] Live check: 200, title, `/matchups.html`, loads in headless Chromium
 
 ### Review (local work done; go-live waits for the user)
 
@@ -1501,3 +1501,14 @@ fires before a 5 MB inline script is parsed. It now waits for the page's own rea
 **Repo.** `git init` done, 57 files staged by explicit path (1.4 MB; notebook 0.42 MB, outputs stripped), leak
 scan clean on the staged blobs. Excluded `scripts/_limitless/` (saved third-party pages). **No commit yet:** git
 has no repo-level identity and the global one is a work email.
+
+### Go-live (2026-11-12)
+- Commits authored as `4510586+Zephyr-Rising@users.noreply.github.com` (repo-local config; the global identity is a
+  work email). Repo created and pushed with the Zephyr-Rising token in the command's env only.
+- Rebuilt on fresh data (through 12 Nov 2026) before deploying; preflight passed on that `dist/`.
+- Live: both URLs 200, title and date correct, headless Chromium at 1400/390 px with no console errors and no
+  sideways scroll.
+- **Caught:** the first deploy shipped CRLF -> LF rewritten files (Git for Windows sets `core.autocrlf=true`
+  system-wide, and the throwaway staging repo has no `.gitattributes`). `deploy_pages.py` now sets
+  `core.autocrlf=false` there; after redeploy the live sha256 of both files equals the local build.
+- Not automatic: the page is a snapshot. Refresh = notebook -> build_phone_matchups -> build_site -> preflight -> deploy.
