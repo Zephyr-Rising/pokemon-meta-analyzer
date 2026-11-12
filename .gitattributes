@@ -1,0 +1,6 @@
+# Notebooks are committed without outputs (the working copy keeps them).
+# One-time setup per clone:
+#   git config filter.nbstrip.clean "python scripts/strip_notebook.py"
+#   git config filter.nbstrip.smudge cat
+#   git config filter.nbstrip.required true
+*.ipynb filter=nbstrip

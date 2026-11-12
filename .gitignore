@@ -1,0 +1,19 @@
+# Whitelist: nothing at the top level is tracked unless it is named here.
+# Data caches, builds, old notebooks, backups and dumps stay local by construction.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/CLAUDE.md
+!/pokemon_meta_analyzer_v2 Top 50.ipynb
+!/scripts/
+!/tasks/
+
+# Inside the tracked folders
+__pycache__/
+*.pyc
+*.bak*
+.ipynb_checkpoints/
+
+# Saved third-party pages (scraper fixtures): not ours to republish
+scripts/_limitless/

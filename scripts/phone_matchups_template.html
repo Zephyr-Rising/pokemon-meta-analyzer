@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Matchup Finder</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#fff;--ink:#16181d;--mute:#667085;--line:#e3e6eb;
+  --acc:#2f6fed;--acc-ink:#fff;--fav:#1f9d55;--unf:#d64545;--even:#8a6d00;--chip:#eef1f5;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1115;--card:#181b21;--ink:#e8eaee;--mute:#9aa3b2;--line:#2a2f38;
+  --acc:#5b8cff;--acc-ink:#0b0d12;--fav:#3ecf7a;--unf:#ff6b6b;--even:#e3c14b;--chip:#232831;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:0 0 env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px 8px}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--mute);font-size:12px}
+main{padding:10px 16px 40px;max-width:720px;margin:0 auto}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.seg{display:flex;background:var(--chip);border-radius:10px;padding:3px;flex:1;min-width:0}
+.seg button{flex:1;border:0;background:none;color:var(--ink);font:inherit;font-size:13px;padding:7px 4px;border-radius:8px;white-space:nowrap}
+.seg button.on{background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.15);font-weight:600}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:13px;padding:6px 10px;border-radius:999px}
+.chip.on{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+select,input[type=search],input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--card);
+  border:1px solid var(--line);border-radius:8px;padding:7px 8px;min-width:0}
+select{flex:1}
+label.small{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:6px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:10px}
+summary{padding:11px 14px;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"▾";color:var(--mute)}
+details[open] summary::after{content:"▴"}
+.pad{padding:0 14px 12px}
+.decklist{max-height:50vh;overflow:auto;border-top:1px solid var(--line);margin-top:8px}
+.decklist label{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.decklist label .n{margin-left:auto;color:var(--mute);font-size:12px;font-variant-numeric:tabular-nums}
+.decklist input{width:18px;height:18px;accent-color:var(--acc)}
+.decklist label.x{color:var(--mute);text-decoration:line-through}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.count{font-size:13px;color:var(--mute);margin:14px 2px 6px}
+.m{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.m .names{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
+.m .names{align-items:center}
+.m .names .dk{display:flex;align-items:center;gap:6px;min-width:0}
+.m .names .dk.r{justify-content:flex-end;text-align:right}
+.decklist label .ic{flex:none;min-width:58px;justify-content:flex-start}
+.decklist label.x .ic{opacity:.45}
+.bar{position:relative;height:8px;border-radius:4px;background:var(--unf);margin:8px 0 6px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--fav)}
+.bar b{position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:var(--card)}
+.m .stats{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+.wr{font-weight:700;font-size:13px}
+.stats.wrs{display:flex;justify-content:space-between;color:var(--ink);margin-bottom:2px}
+.tag{font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:6px}
+.tag.e{color:var(--even);border:1px solid var(--even)}
+.tag.f{color:var(--fav);border:1px solid var(--fav)}
+.tag.u{color:var(--unf);border:1px solid var(--unf)}
+.more{width:100%;margin-top:4px}
+.note{font-size:12px;color:var(--mute);margin-top:18px;line-height:1.5}
+.empty{text-align:center;color:var(--mute);padding:30px 0}
+input.num{width:64px}
+/* matchup table */
+.mxwrap{overflow:auto;max-height:72vh;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+table.mx{border-collapse:separate;border-spacing:0;font-size:11px;font-variant-numeric:tabular-nums}
+.mx th,.mx td{padding:0;text-align:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.mx thead th{position:sticky;top:0;z-index:2;background:var(--card);height:64px;vertical-align:bottom;padding:4px 0}
+.mx tbody th{position:sticky;left:0;z-index:1;background:var(--card);padding:0 4px;white-space:nowrap;height:34px}
+.mx thead th.corner{left:0;z-index:3;font-size:10px;color:var(--mute);font-weight:400;vertical-align:middle}
+.mx td{min-width:34px;height:34px;cursor:pointer}
+.mx td.diag{background:var(--chip);color:var(--mute);cursor:default}
+.mx td.thin{color:var(--mute);opacity:.45}
+.mx td.fade{opacity:.22}
+.mx td.sel{outline:2px solid var(--acc);outline-offset:-2px}
+.ic{display:inline-flex;align-items:center;justify-content:center;gap:0}
+.mx thead .ic{flex-direction:column}
+.sp{display:block;width:30px;height:25px;background:center/contain no-repeat;image-rendering:auto}
+.mx tbody .sp{width:28px;height:24px}
+.ic .txt{font-size:10px;font-weight:700;color:var(--mute);width:28px}
+.detail{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:13px}
+.detail .ic .sp{width:36px;height:30px}
+.legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mute);margin-top:8px;flex-wrap:wrap}
+.legend .sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-3px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Matchup Finder</h1>
+  <div class="sub" id="summary"></div>
+  <div class="row">
+    <div class="seg" id="win"></div>
+  </div>
+  <div class="row" id="src"></div>
+  <div class="row">
+    <div class="seg" id="mode">
+      <button data-v="even">Even</button><button data-v="uneven">Uneven</button><button data-v="all">All</button>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="row" style="margin-top:0">
+    <select id="focus" aria-label="Focus archetype"></select>
+  </div>
+  <div class="row">
+    <label class="small">Min games
+      <select id="minG"><option>5</option><option>10</option><option selected>20</option><option>50</option><option>100</option><option>250</option></select>
+    </label>
+    <label class="small">Even within ±
+      <input class="num" id="evenT" type="number" inputmode="decimal" min="0" max="50" step="0.5">
+    </label>
+    <label class="small">Uneven ≥
+      <input class="num" id="unevenT" type="number" inputmode="decimal" min="0" max="50" step="0.5">
+    </label>
+  </div>
+  <div class="row">
+    <div class="seg" id="view"><button data-v="list">List</button><button data-v="table">Table</button></div>
+  </div>
+
+  <details id="exDetails">
+    <summary><span id="exTitle">Archetypes</span></summary>
+    <div class="pad">
+      <input type="search" id="exSearch" placeholder="Search archetypes" style="width:100%">
+      <div class="btns">
+        <button class="chip" data-under="0.5">Exclude &lt;0.5% share</button>
+        <button class="chip" data-under="1">Exclude &lt;1%</button>
+        <button class="chip" data-under="2">Exclude &lt;2%</button>
+        <button class="chip" id="exDefault">Reset to default</button>
+        <button class="chip" id="exClear">Include all</button>
+      </div>
+      <div class="decklist" id="exList"></div>
+    </div>
+  </details>
+
+  <div class="count" id="count"></div>
+  <div id="listView">
+    <div id="list"></div>
+    <button class="chip more" id="more" hidden>Show more</button>
+  </div>
+  <div id="tableView" hidden>
+    <div class="mxwrap"><table class="mx" id="mx"></table></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--fav)"></span> row deck favoured</span>
+      <span><span class="sw" style="background:var(--unf)"></span> unfavoured</span>
+      <span><span class="sw" style="background:rgba(214,170,20,.5)"></span> even</span>
+      <span>faded = under Min games, or outside the Even / Uneven filter</span>
+    </div>
+    <div class="detail" id="detail">Tap a cell for the matchup details. Numbers are the row deck's win rate.</div>
+  </div>
+
+  <p class="note">
+    <b>Win rate</b> is the 3-point rate (win 3, tie 1, loss 0), as Trainer Hill reports it.
+    Ties pull it slightly below 50% even when wins equal losses, so <b>even / uneven</b> is judged by the
+    <b>edge</b>: win rate minus that matchup's break-even, which works out to (wins − losses) ÷ (2 × games).
+    <b>±</b> is a rough 95% margin of error. Few games means a noisy number, so raise <i>Min games</i> when in doubt.
+    Mirror matches are left out. Share is the % of players on the archetype in the selected events.
+    <br><span id="built"></span>
+  </p>
+</main>
+<script>
+const DATA = /*__DATA__*/null;
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('mf.'+k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('mf.'+k, JSON.stringify(v)); }catch(e){} }
+};
+const N = DATA.decks.length;
+const S = {
+  win: store.get('win', 'recent'),
+  src: store.get('src', ['labs']),
+  mode: store.get('mode', 'even'),
+  focus: -1,
+  minG: store.get('minG', 20),
+  evenT: store.get('evenT', 3),
+  unevenT: store.get('unevenT', 10),
+  ex: new Set(),
+  shown: 60,
+  view: store.get('view', 'list'),
+  sel: null,
+};
+// One CSS class per sprite, so each data URI appears in the document once.
+const SPR = {};
+{
+  const css = Object.entries(DATA.sprites).map(([k, uri], j) => { SPR[k] = j; return `.s${j}{background-image:url(${uri})}`; });
+  const st = document.createElement('style'); st.textContent = css.join('\n'); document.head.appendChild(st);
+}
+function iconHTML(i){
+  const ic = DATA.icons[i].filter(k => k in SPR);
+  const inner = ic.length ? ic.map(k => `<i class="sp s${SPR[k]}"></i>`).join('')
+    : `<span class="txt">${esc(DATA.decks[i].split(/\s+/).map(w => w[0]).join('').slice(0, 3))}</span>`;
+  return `<span class="ic" title="${esc(DATA.decks[i])}">${inner}</span>`;
+}
+// The saved list is of archetypes switched ON, so decks new to a later build start off.
+function setOn(on){ S.ex = new Set([...Array(N).keys()].filter(i => !on.has(i))); }
+const savedOn = store.get('on', null);
+setOn(new Set(Array.isArray(savedOn)
+  ? savedOn.map(n => DATA.decks.indexOf(n)).filter(i => i >= 0)
+  : DATA.defaultOn));
+if (!DATA.windows[S.win]) S.win = Object.keys(DATA.windows)[0];
+S.src = S.src.filter(s => DATA.sources[s]); if (!S.src.length) S.src = [Object.keys(DATA.sources)[0]];
+
+let pairs = [], share = new Float64Array(N), players = 0, PM = new Map();
+
+function aggregate(){
+  const m = new Map();
+  share = new Float64Array(N); players = 0;
+  let events = 0, regionals = [];
+  for (const s of S.src){
+    const sl = DATA.slices[S.win + '|' + s];
+    events += sl.events; players += sl.players; regionals = regionals.concat(sl.regionals);
+    for (const k in sl.share) share[k] += sl.share[k];
+    const p = sl.p;
+    for (let i = 0; i < p.length; i += 5){
+      const key = p[i] * N + p[i+1];
+      const r = m.get(key);
+      if (r){ r[2] += p[i+2]; r[3] += p[i+3]; r[4] += p[i+4]; }
+      else m.set(key, [p[i], p[i+1], p[i+2], p[i+3], p[i+4]]);
+    }
+  }
+  pairs = []; PM = new Map();
+  for (const [a, b, w, l, t] of m.values()){
+    const g = w + l + t; if (!g) continue;
+    const p = {a, b, w, l, t, g};
+    pairs.push(p); PM.set(a * N + b, p);
+  }
+  for (let i = 0; i < N; i++) share[i] = players ? 100 * share[i] / players : 0;
+  const w = DATA.windows[S.win];
+  $('summary').textContent = `${w.label} (since ${w.start}) · ${events} events` +
+    (regionals.length ? ` · ${regionals.length} regionals` : '') + ` · ${players.toLocaleString()} players`;
+}
+
+// from a's perspective
+const wr = (w, l, t, g) => 100 * (3*w + t) / (3*g);
+const edge = (w, l, g) => 100 * (w - l) / (2*g);
+
+function render(){
+  const table = S.view === 'table';
+  $('listView').hidden = table; $('tableView').hidden = !table;
+  $('focus').parentElement.hidden = table;     // focus applies to the list only
+  table ? renderTable() : renderList();
+}
+
+// record of a vs b from a's side, or null
+function stats(a, b){
+  const p = PM.get(Math.min(a, b) * N + Math.max(a, b));
+  if (!p) return null;
+  return a < b ? {w: p.w, l: p.l, t: p.t, g: p.g} : {w: p.l, l: p.w, t: p.t, g: p.g};
+}
+function tagHTML(e){
+  const ae = Math.abs(e);
+  return ae <= S.evenT ? '<span class="tag e">EVEN</span>'
+    : ae >= S.unevenT ? `<span class="tag ${e > 0 ? 'f' : 'u'}">${e > 0 ? 'FAV' : 'UNFAV'}</span>` : '';
+}
+const shade = e => { if (Math.abs(e) <= S.evenT) return 'rgba(214,170,20,.32)'; const a = (0.12 + 0.7 * Math.min(1, Math.abs(e) / 20)).toFixed(2);
+  return e >= 0 ? `rgba(31,157,85,${a})` : `rgba(214,69,69,${a})`; };
+
+function renderTable(){
+  const ds = order().filter(i => !S.ex.has(i));
+  $('count').textContent = `${ds.length} archetypes on · row deck's win rate vs column deck`;
+  if (!ds.length){ $('mx').innerHTML = ''; return; }
+  const h = ['<thead><tr><th class="corner">vs</th>'];
+  for (const j of ds) h.push(`<th>${iconHTML(j)}</th>`);
+  h.push('</tr></thead><tbody>');
+  for (const i of ds){
+    h.push(`<tr><th>${iconHTML(i)}</th>`);
+    for (const j of ds){
+      if (i === j){ h.push('<td class="diag">–</td>'); continue; }
+      const s = stats(i, j);
+      if (!s){ h.push(`<td class="thin" data-a="${i}" data-b="${j}"></td>`); continue; }
+      const e = edge(s.w, s.l, s.g), ae = Math.abs(e);
+      const out = (S.mode === 'even' && ae > S.evenT) || (S.mode === 'uneven' && ae < S.unevenT);
+      const cls = [s.g < S.minG ? 'thin' : out ? 'fade' : '',
+                   S.sel && S.sel[0] === i && S.sel[1] === j ? 'sel' : ''].join(' ').trim();
+      const bg = s.g < S.minG ? '' : ` style="background:${shade(e)}"`;
+      h.push(`<td class="${cls}" data-a="${i}" data-b="${j}"${bg}>${Math.round(wr(s.w, s.l, s.t, s.g))}</td>`);
+    }
+    h.push('</tr>');
+  }
+  h.push('</tbody>');
+  $('mx').innerHTML = h.join('');
+  renderDetail();
+}
+
+function renderDetail(){
+  const d = $('detail');
+  if (!S.sel || S.ex.has(S.sel[0]) || S.ex.has(S.sel[1])){
+    S.sel = null; d.textContent = 'Tap a cell for the matchup details. Numbers are the row deck’s win rate.'; return;
+  }
+  const [a, b] = S.sel, s = stats(a, b);
+  const head = `<div class="names" style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600">
+    <span>${iconHTML(a)} ${esc(DATA.decks[a])}</span><span>vs</span><span style="text-align:right">${esc(DATA.decks[b])} ${iconHTML(b)}</span></div>`;
+  if (!s){ d.innerHTML = head + '<div class="stats" style="color:var(--mute);margin-top:6px">No games recorded in the selected events.</div>'; return; }
+  const r = wr(s.w, s.l, s.t, s.g), e = edge(s.w, s.l, s.g);
+  d.innerHTML = head + `<div class="bar"><i style="width:${r.toFixed(1)}%"></i><b></b></div>
+    <div class="stats wrs"><span class="wr">${r.toFixed(1)}%</span><span class="wr">${wr(s.l, s.w, s.t, s.g).toFixed(1)}%</span></div>
+    <div style="display:flex;justify-content:space-between;color:var(--mute);font-variant-numeric:tabular-nums">
+    <span>±${(98 / Math.sqrt(s.g)).toFixed(0)} · edge ${e >= 0 ? '+' : '−'}${Math.abs(e).toFixed(1)}${tagHTML(e)}</span>
+    <span>${s.w}-${s.l}-${s.t} · ${s.g} games${s.g < S.minG ? ' (under min)' : ''}</span></div>`;
+}
+
+function renderList(){
+  const out = [];
+  for (const p of pairs){
+    if (p.g < S.minG || S.ex.has(p.a) || S.ex.has(p.b)) continue;
+    if (S.focus >= 0 && p.a !== S.focus && p.b !== S.focus) continue;
+    let {a, b, w, l, t, g} = p;
+    // orient: focus deck first, otherwise the favoured side first
+    if ((S.focus >= 0 && b === S.focus) || (S.focus < 0 && l > w)){ [a, b] = [b, a]; [w, l] = [l, w]; }
+    const e = edge(w, l, g), ae = Math.abs(e);
+    if (S.mode === 'even' && ae > S.evenT) continue;
+    if (S.mode === 'uneven' && ae < S.unevenT) continue;
+    out.push({a, b, w, l, t, g, e, ae, r: wr(w, l, t, g)});
+  }
+  // least to most edge (size, either direction); more games first on a tie
+  out.sort((x, y) => x.ae - y.ae || y.g - x.g);
+
+  const label = {even:'even', uneven:'uneven', all:''}[S.mode];
+  $('count').textContent = `${out.length} ${label} matchup${out.length === 1 ? '' : 's'}` +
+    (S.focus >= 0 ? ` for ${DATA.decks[S.focus]}` : '') + ` · ${order().filter(i => !S.ex.has(i)).length} archetypes on`;
+  const list = $('list');
+  if (!out.length){ list.innerHTML = '<div class="empty">No matchups match these filters.</div>'; $('more').hidden = true; return; }
+  const html = [];
+  for (const m of out.slice(0, S.shown)){
+    const tag = tagHTML(m.e);
+    const moe = 98 / Math.sqrt(m.g);
+    const sign = m.e >= 0 ? '+' : '−';
+    html.push(`<div class="m">
+      <div class="names"><span class="dk">${iconHTML(m.a)}<span>${esc(DATA.decks[m.a])}${tag}</span></span><span class="dk r"><span>${esc(DATA.decks[m.b])}</span>${iconHTML(m.b)}</span></div>
+      <div class="bar"><i style="width:${Math.min(100, Math.max(0, m.r)).toFixed(1)}%"></i><b></b></div>
+      <div class="stats wrs"><span class="wr">${m.r.toFixed(1)}%</span><span class="wr">${wr(m.l, m.w, m.t, m.g).toFixed(1)}%</span></div>
+      <div class="stats"><span>±${moe.toFixed(0)} · edge ${sign}${Math.abs(m.e).toFixed(1)}</span>
+      <span>${m.w}-${m.l}-${m.t} · ${m.g} games</span></div></div>`);
+  }
+  list.innerHTML = html.join('');
+  $('more').hidden = out.length <= S.shown;
+  $('more').textContent = `Show more (${out.length - S.shown} left)`;
+}
+
+function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function order(){ // archetypes by share, then by games played
+  const games = new Float64Array(N);
+  for (const p of pairs){ games[p.a] += p.g; games[p.b] += p.g; }
+  return [...Array(N).keys()].filter(i => share[i] > 0 || games[i] > 0)
+    .sort((x, y) => share[y] - share[x] || games[y] - games[x]);
+}
+
+function renderFocus(){
+  const sel = $('focus'), cur = S.focus;
+  const opts = ['<option value="-1">All archetypes</option>'];
+  for (const i of order()) if (!S.ex.has(i))
+    opts.push(`<option value="${i}">${esc(DATA.decks[i])} (${share[i].toFixed(1)}%)</option>`);
+  sel.innerHTML = opts.join('');
+  if (cur >= 0 && !S.ex.has(cur) && sel.querySelector(`option[value="${cur}"]`)) sel.value = cur;
+  else { S.focus = -1; sel.value = -1; }
+}
+
+function renderEx(){
+  const q = $('exSearch').value.trim().toLowerCase();
+  const rows = [];
+  for (const i of order()){
+    const name = DATA.decks[i];
+    if (q && !name.toLowerCase().includes(q)) continue;
+    const x = S.ex.has(i);
+    rows.push(`<label class="${x ? 'x' : ''}"><input type="checkbox" data-i="${i}" ${x ? '' : 'checked'}>${iconHTML(i)}${esc(name)}<span class="n">${share[i].toFixed(2)}%</span></label>`);
+  }
+  $('exList').innerHTML = rows.join('') || '<div class="empty">No match</div>';
+  const on = order().filter(i => !S.ex.has(i)).length;
+  $('exTitle').textContent = `Archetypes (${on} on)`;
+}
+
+function saveEx(){ store.set('on', [...Array(N).keys()].filter(i => !S.ex.has(i)).map(i => DATA.decks[i])); }
+function refresh(full){
+  if (full) aggregate();
+  S.shown = 60;
+  renderFocus(); renderEx(); render(); syncButtons();
+}
+
+function syncButtons(){
+  document.querySelectorAll('#win button').forEach(b => b.classList.toggle('on', b.dataset.v === S.win));
+  document.querySelectorAll('#src button').forEach(b => b.classList.toggle('on', S.src.includes(b.dataset.v)));
+  document.querySelectorAll('#mode button').forEach(b => b.classList.toggle('on', b.dataset.v === S.mode));
+  document.querySelectorAll('#view button').forEach(b => b.classList.toggle('on', b.dataset.v === S.view));
+}
+
+// --- wire up ---
+$('win').innerHTML = Object.entries(DATA.windows).map(([k, w]) => `<button data-v="${k}">${esc(w.label)}</button>`).join('');
+$('src').innerHTML = Object.entries(DATA.sources).map(([k, l]) => `<button class="chip" data-v="${k}">${esc(l)}</button>`).join('');
+$('win').onclick = e => { const v = e.target.dataset.v; if (!v) return; S.win = v; store.set('win', v); refresh(true); };
+$('src').onclick = e => {
+  const v = e.target.dataset.v; if (!v) return;
+  const has = S.src.includes(v);
+  if (has && S.src.length === 1) return;          // keep at least one source
+  S.src = has ? S.src.filter(s => s !== v) : S.src.concat(v);
+  store.set('src', S.src); refresh(true);
+};
+$('mode').onclick = e => { const v = e.target.dataset.v; if (!v) return; S.mode = v; store.set('mode', v); S.shown = 60; render(); syncButtons(); };
+$('focus').onchange = e => { S.focus = +e.target.value; S.shown = 60; render(); };
+$('minG').value = String(S.minG);
+$('minG').onchange = e => { S.minG = +e.target.value; store.set('minG', S.minG); S.shown = 60; render(); };
+for (const k of ['evenT', 'unevenT']){          // free-typed edge thresholds, in points
+  $(k).value = String(S[k]);
+  $(k).oninput = e => {
+    const v = parseFloat(e.target.value);
+    if (!isFinite(v) || v < 0 || v > 50) return;   // ignore half-typed / out-of-range values
+    S[k] = v; store.set(k, v); S.shown = 60; render();
+  };
+  $(k).onblur = e => { e.target.value = String(S[k]); };
+}
+$('view').onclick = e => { const v = e.target.dataset.v; if (!v) return; S.view = v; store.set('view', v); render(); syncButtons(); };
+$('mx').onclick = e => {
+  const td = e.target.closest('td[data-a]'); if (!td) return;
+  S.sel = [+td.dataset.a, +td.dataset.b];
+  $('mx').querySelectorAll('td.sel').forEach(x => x.classList.remove('sel')); td.classList.add('sel');
+  renderDetail();
+};
+$('exSearch').oninput = renderEx;
+$('exList').onchange = e => {
+  const i = +e.target.dataset.i;
+  e.target.checked ? S.ex.delete(i) : S.ex.add(i);
+  saveEx(); renderFocus(); renderEx(); S.shown = 60; render();
+};
+document.querySelectorAll('[data-under]').forEach(b => b.onclick = () => {
+  const t = +b.dataset.under;
+  for (const i of order()) if (share[i] < t) S.ex.add(i);
+  saveEx(); refresh(false);
+});
+$('exClear').onclick = () => { S.ex.clear(); saveEx(); refresh(false); };
+$('exDefault').onclick = () => { setOn(new Set(DATA.defaultOn)); saveEx(); refresh(false); };
+$('more').onclick = () => { S.shown += 100; render(); };
+$('built').textContent = `Data: Trainer Hill, built ${DATA.built}.`;
+refresh(true);
+</script>
+</body>
+</html>
