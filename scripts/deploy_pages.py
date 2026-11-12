@@ -56,6 +56,7 @@ def main():
         (staging / '.nojekyll').write_text('')   # Jekyll would drop _-prefixed files
         git = lambda *a: run('git', *a, cwd=staging, env=env)
         git('init', '-q', '-b', BRANCH)
+        git('config', 'core.autocrlf', 'false')   # ship the exact bytes preflight checked
         git('config', 'user.name', name)
         git('config', 'user.email', email)
         git('config', 'credential.https://github.com.helper', '')
